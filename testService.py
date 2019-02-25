@@ -1,22 +1,16 @@
 import socket
-import random
-import sys
 import rpyc
 from rpyc.utils.server import ThreadedServer
 from rpyc.utils.helpers import classpartial
-
-
 import win32serviceutil
-
 import servicemanager
 import win32event
 import win32service
-
 import schedule
 import time
-
 import logging.handlers
 import threading
+
 
 class SMWinservice(win32serviceutil.ServiceFramework):
     '''Base class to create winservice in Python'''
@@ -78,8 +72,16 @@ class SMWinservice(win32serviceutil.ServiceFramework):
         '''
         pass
 
-class MyService(rpyc.Service):
+
+class ServiceGate(rpyc.Service):
     def __init__(self, observed):
+        """
+        Init the gate which gives access for the WinService
+
+        :param observed: Reference to observed WinService
+        :type observed: ref
+        """
+
         super().__init__()
         self._observedService = observed
 
@@ -89,91 +91,150 @@ class MyService(rpyc.Service):
     def on_disconnect(self, conn):
         pass
 
-    def exposed_get_state(self): # this is an exposed method
-        return self._observedService._state
+    def exposed_get_state(self):
+        """
+        This is custom function to retrieve some variable from WinService
 
-    def exposed_registerObserver(self, port, name):
-        self._observedService._observers[name] = rpyc.connect("localhost", port)
-        logging.getLogger().debug(
-            "Added obsever {}".format(name))
+        Please note the exposed_ prefix, required by RPYC: https://rpyc.readthedocs.io/en/latest/docs/services.html
 
-    def exposed_removeObserver(self, name):
-        del(self._observedService._observers[name])
-        logging.getLogger().debug("Deleted observer {}".format(name))
+        :returns: value of a field you want to expose
+        :rtype: int
+        """
+        return self._observedService.get_state()
 
-class InfoPortThread (threading.Thread):
-    def __init__(self, testService):
+    def exposed_register_observer(self, port, name):
+        """
+        Register object that will be notified on WinService state change
+
+        This example assumes that observer is on the same host (localhost) as observable
+
+        :param port: The Windows port on which the observer was registered.
+            You can use for example rpyc ThreadedServer:
+            https://rpyc.readthedocs.io/en/latest/api/utils_server.html#rpyc.utils.server.ThreadedServer
+        :type port: int
+        :param name: Friendly name which you can use to distinguish observers
+        :type name: str
+        """
+
+        handler = rpyc.connect("localhost", port)
+        self._observedService.register_observer(name, handler)
+
+    def exposed_remove_observer(self, name):
+        """
+        Unregister observer previously added to notification list
+
+        :param name: Friendly name you used to register observer
+        :type name: str
+        """
+        self._observedService.remove_observer(name)
+
+
+class ServiceGateThread (threading.Thread):
+    """
+    This class starts and handle dedicated thread for ServiceGate
+    """
+
+    def __init__(self, observed):
+        """
+        Init the thread object with ref to observed WinService
+
+        Because this object is a bridge between WinService and ServiceGate, reference to original
+            observed service is required. This reference will be passed to ServiceGate then.
+
+        :param observed: Reference to observed WinService
+        :type observed: ref
+        """
+
         threading.Thread.__init__(self)
-        self.testService = testService
+        self._testService = observed
 
     def run(self):
-        logging.getLogger().debug('Starting Info Port')
-        service = classpartial(MyService, self.testService)
+        """
+        Starts and keep running ServiceGate on dedicated thread
+
+        Rpyc package offers builders for services, which is blocking.
+            For that reason, it must run on another thread, otherwise it will block your app. See more:
+            https://rpyc.readthedocs.io/en/latest/api/utils_server.html#rpyc.utils.server.Server.start
+        """
+        logging.getLogger().debug('Starting thread for ServiceGate')
+        service = classpartial(ServiceGate, self._testService)
         t = ThreadedServer(service, port=18860)
         t.start()
-        logging.getLogger().debug('Stopped info port thread')
+        logging.getLogger().debug('Thread for ServiceGate finished running')
 
-class TestService(SMWinservice):
-    _svc_name_ = "TestService"
-    _svc_display_name_ = "Test service"
-    _svc_description_ = "xxx"
+
+class WinService(SMWinservice):
+    _svc_name_ = "TestPythonWinService"
+    _svc_display_name_ = "TestPythonWinService"
+    _svc_description_ = "Example long service with exposed changing state"
 
     STATE_BUSY = 1
     STATE_IDLE = 0
 
     def __init__(self, args):
         super().__init__(args)
-        self.loggerMain = logging.getLogger()
-        self.loggerMain.setLevel(logging.DEBUG)
-        self.handlerConsole = logging.StreamHandler()
-        self.handlerConsole.setLevel(logging.DEBUG)
-        self.formatterMain = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            '%Y-%m-%d %H:%M:%S'
-        )
-        self.handlerConsole.setFormatter(self.formatterMain)
-        self.loggerMain.addHandler(self.handlerConsole)
-
         self._observers = {}  # dict()
-        self._state=TestService.STATE_IDLE
+        self._state = WinService.STATE_IDLE
+        self._is_running = False
+        self._serviceGateThread = ServiceGateThread(self)
 
     def start(self):
-        self.loggerMain.info("Starting main service")
-        self.isrunning = True
+        logging.getLogger().info("Starting main observed service")
+        self._is_running = True
 
-        self.infoPortThread = InfoPortThread(self)
-        self.infoPortThread.start()
+        self._serviceGateThread.start()
 
     def stop(self):
-        self.loggerMain.info("Stopping main service")
-        self.isrunning = False
+        logging.getLogger().info("Main observed service is about to stop")
+        self._is_running = False
 
     def refreshRoutersBalance(self):
-        self.loggerMain.info("Starting main job")
+        logging.getLogger().info("Starting main job")
 
-        self.loggerMain.debug("Setting busy state")
-        self._state = TestService.STATE_BUSY
+        logging.getLogger().debug("Setting busy state")
+        self._state = WinService.STATE_BUSY
         self.notifyObservers()
-        self.loggerMain.info("Starting session...")
+        logging.getLogger().info("Starting session...")
         time.sleep(15)
-        self.loggerMain.debug("Finished. Switching back to idle state")
-        self._state = TestService.STATE_IDLE
+        logging.getLogger().debug("Finished. Switching back to idle state")
+        self._state = WinService.STATE_IDLE
         self.notifyObservers()
 
     def notifyObservers(self):
-        self.loggerMain.info("Notify observers about state change")
+        logging.getLogger().info("Notify observers about state change")
         for name in self._observers:
             self._observers[name].root.updateServiceState(self._state)
 
+    def get_state(self):
+        return self._state
+
+    def register_observer(self, name, handler):
+        self._observers[name] = handler
+        logging.getLogger().debug("Added obsever %s" % name)
+
+    def remove_observer(self, name):
+        del (self._observers[name])
+        logging.getLogger().debug("Deleted observer %s" % name)
 
     def main(self):
-        self.loggerMain.info("Starting main loop")
+        logging.getLogger().info("Starting main loop")
 
         timer = schedule.every(12).seconds
         timer.do(self.refreshRoutersBalance)
-        while self.isrunning:
+        while self._is_running:
             schedule.run_pending()
             time.sleep(1)
 
+loggerMain = logging.getLogger()
+loggerMain.setLevel(logging.DEBUG)
+handlerConsole = logging.StreamHandler()
+handlerConsole.setLevel(logging.DEBUG)
+formatterMain = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    '%Y-%m-%d %H:%M:%S'
+)
+handlerConsole.setFormatter(formatterMain)
+loggerMain.addHandler(handlerConsole)
+
 if __name__ == '__main__':
-    TestService.parse_command_line()
+    WinService.parse_command_line()

@@ -9,7 +9,11 @@ import sys
 import os
 import time
 
+import signal
+
+
 class AppClient:
+
     class PortThread(threading.Thread):
 
         class Port(rpyc.Service):
@@ -29,6 +33,7 @@ class AppClient:
 
             def exposed_updateServiceState(self, state):
                 self._app.setServiceState(state)
+                logging.getLogger().debug('Status updated! Changed to: '+ str(state))
 
         def __init__(self, app):
             threading.Thread.__init__(self)
@@ -58,7 +63,7 @@ class AppClient:
     def subscribeToService(self):
         # polaczenie z usluga
         self._servicePort = rpyc.connect("localhost", 18860)
-        self._servicePort.root.registerObserver(18870, 'testClient')
+        self._servicePort.root.register_observer(18870, 'testClient')
         self._serviceState = self._servicePort.root.get_state()
         # zamykam wychodzace polaczenie z usluga
         #self._servicePort.close()
@@ -66,7 +71,7 @@ class AppClient:
     def unsubscribeFromService(self):
         # polaczenie z usluga
         #self._servicePort = rpyc.connect("localhost", 18860)
-        self._servicePort.root.removeObserver('testClient')
+        self._servicePort.root.remove_observer('testClient')
         # zamykam wychodzace polaczenie z usluga
         self._servicePort.close()
 
@@ -91,10 +96,15 @@ formatterMain = logging.Formatter(
 handlerConsole.setFormatter(formatterMain)
 logs.addHandler(handlerConsole)
 
+
+
 app = AppClient()
 app.subscribeToService()
-for i in range(10):
-    print("Service state: {}".format(app._serviceState))
-    time.sleep(2)
-app.closeApp()
 
+
+while True:
+    nb = input('Type `q` to close: ')
+    if nb == 'q':
+        break
+
+app.closeApp()

@@ -13,7 +13,7 @@ import threading
 
 
 class SMWinservice(win32serviceutil.ServiceFramework):
-    '''Base class to create winservice in Python'''
+    """Base class to create winservice in Python"""
 
     _svc_name_ = 'pythonService'
     _svc_display_name_ = 'Python Service'
@@ -74,6 +74,10 @@ class SMWinservice(win32serviceutil.ServiceFramework):
 
 
 class ServiceGate(rpyc.Service):
+    """
+    Allows to establish incoming connection to the WinService
+    """
+
     def __init__(self, observed):
         """
         Init the gate which gives access for the WinService
@@ -136,7 +140,7 @@ class ServiceGateThread (threading.Thread):
 
     def __init__(self, observed):
         """
-        Init the thread object with ref to observed WinService
+        Init the thread object.
 
         Because this object is a bridge between WinService and ServiceGate, reference to original
             observed service is required. This reference will be passed to ServiceGate then.
@@ -164,12 +168,26 @@ class ServiceGateThread (threading.Thread):
 
 
 class WinService(SMWinservice):
+    """
+    WinService class you wish to observe
+
+    This class contains service name as well as description you will see on Windows when run Services.msc
+    """
+
     _svc_name_ = "TestPythonWinService"
+    """Name you use in e.g. cmd to run/stop/check status."""
+
     _svc_display_name_ = "TestPythonWinService"
+    """Friendly name you will see in services."""
+
     _svc_description_ = "Example long service with exposed changing state"
+    """Short description of your service name."""
 
     STATE_BUSY = 1
+    """Class const of state when your service performs any demanding task"""
+
     STATE_IDLE = 0
+    """Class const of state when your service is waiting until schedule call main job again"""
 
     def __init__(self, args):
         super().__init__(args)
@@ -179,16 +197,26 @@ class WinService(SMWinservice):
         self._serviceGateThread = ServiceGateThread(self)
 
     def start(self):
+        """
+        Interface function for starting the service
+
+        This method will be called when you try to start the service from Windows service panel or cmd.
+        """
         logging.getLogger().info("Starting main observed service")
         self._is_running = True
 
         self._serviceGateThread.start()
 
     def stop(self):
+        """
+        Interface function for stopping the service
+
+        This method will be called when you ask your service to stop.
+        """
         logging.getLogger().info("Main observed service is about to stop")
         self._is_running = False
 
-    def refreshRoutersBalance(self):
+    def my_job(self):
         logging.getLogger().info("Starting main job")
 
         logging.getLogger().debug("Setting busy state")
@@ -217,13 +245,19 @@ class WinService(SMWinservice):
         logging.getLogger().debug("Deleted observer %s" % name)
 
     def main(self):
+        """
+        Interface function of main service task.
+
+        This method will be called when you ask your service to stop.
+        """
         logging.getLogger().info("Starting main loop")
 
         timer = schedule.every(12).seconds
-        timer.do(self.refreshRoutersBalance)
+        timer.do(self.my_job)
         while self._is_running:
             schedule.run_pending()
             time.sleep(1)
+
 
 loggerMain = logging.getLogger()
 loggerMain.setLevel(logging.DEBUG)

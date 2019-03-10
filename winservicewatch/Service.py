@@ -216,18 +216,6 @@ class WinService(SMWinservice):
         logging.getLogger().info("Main observed service is about to stop")
         self._is_running = False
 
-    def my_job(self):
-        logging.getLogger().info("Starting main job")
-
-        logging.getLogger().debug("Setting busy state")
-        self._state = WinService.STATE_BUSY
-        self.notifyObservers()
-        logging.getLogger().info("Starting session...")
-        time.sleep(15)
-        logging.getLogger().debug("Finished. Switching back to idle state")
-        self._state = WinService.STATE_IDLE
-        self.notifyObservers()
-
     def notifyObservers(self):
         logging.getLogger().info("Notify observers about state change")
         for name in self._observers:
@@ -248,7 +236,7 @@ class WinService(SMWinservice):
         """
         Interface function of main service task.
 
-        This method will be called when you ask your service to stop.
+        This method will be called when you ask your service to start.
         """
 
         pass

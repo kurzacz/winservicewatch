@@ -5,6 +5,10 @@ import time
 import winservicewatch.Service
 
 
+class MyServiceGate(winservicewatch.Service.ServiceGate):
+    pass
+
+
 class MyObservableService(winservicewatch.Service.WinService):
 
     STATE_BUSY = 1
@@ -16,6 +20,7 @@ class MyObservableService(winservicewatch.Service.WinService):
     def __init__(self, args):
         super().__init__(args)
         self._state = MyObservableService.STATE_IDLE
+        self._serviceGateThread = winservicewatch.Service.ServiceGateThread(self, MyServiceGate, 18860)
 
     def main(self):
         logging.getLogger().info("Starting main loop")

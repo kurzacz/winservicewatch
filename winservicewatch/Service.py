@@ -138,7 +138,7 @@ class ServiceGateThread (threading.Thread):
     This class starts and handle dedicated thread for ServiceGate
     """
 
-    def __init__(self, observed, service_gate):
+    def __init__(self, observed, service_gate, port):
         """
         Init the thread object.
 
@@ -151,7 +151,8 @@ class ServiceGateThread (threading.Thread):
 
         threading.Thread.__init__(self)
         self._observedService = observed
-        self._serviceGateClass = service_gate
+        self._gateClass = service_gate
+        self._port = port
 
     def run(self):
         """
@@ -162,8 +163,8 @@ class ServiceGateThread (threading.Thread):
             https://rpyc.readthedocs.io/en/latest/api/utils_server.html#rpyc.utils.server.Server.start
         """
         logging.getLogger().debug('Starting thread for ServiceGate')
-        service = classpartial(self._serviceGateClass, self._observedService)
-        t = ThreadedServer(service, port=18860)
+        service = classpartial(self._gateClass, self._observedService)
+        t = ThreadedServer(service, port=self._port)
         t.start()
         logging.getLogger().debug('Thread for ServiceGate finished running')
 
@@ -188,7 +189,7 @@ class WinService(SMWinservice):
         super().__init__(args)
         self._observers = {}  # dict()
         self._is_running = False
-        self._serviceGateThread = ServiceGateThread(self, ServiceGate)
+        # self._serviceGateThread = ServiceGateThread(self, ServiceGate, 18860)
 
     def start(self):
         """

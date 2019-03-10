@@ -21,31 +21,31 @@ class SMWinservice(win32serviceutil.ServiceFramework):
 
     @classmethod
     def parse_command_line(cls):
-        '''
+        """
         ClassMethod to parse the command line
-        '''
+        """
         win32serviceutil.HandleCommandLine(cls)
 
     def __init__(self, args):
-        '''
+        """
         Constructor of the winservice
-        '''
+        """
         win32serviceutil.ServiceFramework.__init__(self, args)
         self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
         socket.setdefaulttimeout(60)
 
     def SvcStop(self):
-        '''
+        """
         Called when the service is asked to stop
-        '''
+        """
         self.stop()
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         win32event.SetEvent(self.hWaitStop)
 
     def SvcDoRun(self):
-        '''
+        """
         Called when the service is asked to start
-        '''
+        """
         self.start()
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
@@ -53,23 +53,23 @@ class SMWinservice(win32serviceutil.ServiceFramework):
         self.main()
 
     def start(self):
-        '''
+        """
         Override to add logic before the start
         eg. running condition
-        '''
+        """
         pass
 
     def stop(self):
-        '''
+        """
         Override to add logic before the stop
         eg. invalidating running condition
-        '''
+        """
         pass
 
     def main(self):
-        '''
+        """
         Main class to be ovverridden to add logic
-        '''
+        """
         pass
 
 
@@ -124,7 +124,7 @@ class ServiceGate(rpyc.Service):
 
 class ServiceGateThread (threading.Thread):
     """
-    This class starts and handle dedicated thread for ServiceGate
+    This class starts and handle dedicated thread for ServiceGate. It's a clutch between WinService and ServiceGate.
     """
 
     def __init__(self, observed, service_gate, port):
@@ -180,10 +180,18 @@ class WinService(SMWinservice):
     """Short description of your service name."""
 
     def __init__(self, args):
+        """
+        Init object and set service gate.
+
+        You need to override _serviceGateThread with ServiceGateThread object created with your custom arguments.
+
+        :param args: args set when service is started by Windows.
+        """
+
         super().__init__(args)
         self._observers = {}  # dict()
         self._is_running = False
-        # self._serviceGateThread = ServiceGateThread(self, ServiceGate, 18860)
+        self._serviceGateThread = None
 
     def start(self):
         """
@@ -224,16 +232,3 @@ class WinService(SMWinservice):
         """
 
         pass
-
-
-# TODO: Move to demos
-loggerMain = logging.getLogger()
-loggerMain.setLevel(logging.DEBUG)
-handlerConsole = logging.StreamHandler()
-handlerConsole.setLevel(logging.DEBUG)
-formatterMain = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    '%Y-%m-%d %H:%M:%S'
-)
-handlerConsole.setFormatter(formatterMain)
-loggerMain.addHandler(handlerConsole)

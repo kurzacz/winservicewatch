@@ -49,7 +49,7 @@ class MyObservableService(winservicewatch.Service.WinService):
         logging.getLogger().debug("Suppose I'm locking resources. Set busy state")
         self._state = MyObservableService.STATE_BUSY
         self._notify_observers()
-        logging.getLogger().info("Starting session...")
+        logging.getLogger().info("Starting job...")
         time.sleep(15)
         logging.getLogger().debug("Finished. Unlock resources then switch back to idle state")
         self._state = MyObservableService.STATE_IDLE
@@ -63,6 +63,17 @@ class MyObservableService(winservicewatch.Service.WinService):
     def get_state(self):
         return self._state
 
+
+loggerMain = logging.getLogger()
+loggerMain.setLevel(logging.DEBUG)
+handlerConsole = logging.StreamHandler()
+handlerConsole.setLevel(logging.DEBUG)
+formatterMain = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    '%Y-%m-%d %H:%M:%S'
+)
+handlerConsole.setFormatter(formatterMain)
+loggerMain.addHandler(handlerConsole)
 
 if __name__ == '__main__':
     MyObservableService.parse_command_line()

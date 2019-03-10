@@ -1,6 +1,6 @@
-# Winservice-Watch
+# winservicewatch
 
-Base class for Python WinService with observer design pattern.
+Library for Python WinService with observer design pattern.
 
 ## Introduction
 This simple skeleton gives you more control over the part of your app

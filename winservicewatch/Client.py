@@ -65,6 +65,7 @@ class AppClient:
         self._servicePort = rpyc.connect("localhost", 18860)
         self._servicePort.root.register_observer(18870, 'testClient')
         self._serviceState = self._servicePort.root.get_state()
+        logging.getLogger().info("Present state: {}".format(self._serviceState))
         # zamykam wychodzace polaczenie z usluga
         #self._servicePort.close()
 

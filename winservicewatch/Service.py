@@ -252,13 +252,14 @@ class WinService(SMWinservice):
         """
         logging.getLogger().info("Starting main loop")
 
-        timer = schedule.every(12).seconds
+        timer = schedule.every(3).seconds
         timer.do(self.my_job)
         while self._is_running:
             schedule.run_pending()
             time.sleep(1)
 
 
+# TODO: Move to demos
 loggerMain = logging.getLogger()
 loggerMain.setLevel(logging.DEBUG)
 handlerConsole = logging.StreamHandler()
@@ -269,6 +270,3 @@ formatterMain = logging.Formatter(
 )
 handlerConsole.setFormatter(formatterMain)
 loggerMain.addHandler(handlerConsole)
-
-if __name__ == '__main__':
-    WinService.parse_command_line()

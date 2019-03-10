@@ -1,0 +1,1 @@
+from winservicewatch.Service import WinService

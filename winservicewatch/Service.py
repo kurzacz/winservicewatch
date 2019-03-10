@@ -95,17 +95,6 @@ class ServiceGate(rpyc.Service):
     def on_disconnect(self, conn):
         pass
 
-    def exposed_get_state(self):
-        """
-        This is custom function to retrieve some variable from WinService
-
-        Please note the exposed_ prefix, required by RPYC: https://rpyc.readthedocs.io/en/latest/docs/services.html
-
-        :returns: value of a field you want to expose
-        :rtype: int
-        """
-        return self._observedService.get_state()
-
     def exposed_register_observer(self, port, name):
         """
         Register object that will be notified on WinService state change
@@ -143,10 +132,15 @@ class ServiceGateThread (threading.Thread):
         Init the thread object.
 
         Because this object is a bridge between WinService and ServiceGate, reference to original
-            observed service is required. This reference will be passed to ServiceGate then.
+            observed service is required. This reference will be passed to ServiceGate then. Please
+            provide child class of ServiceGate as well as port on which you gate will be available.
 
         :param observed: Reference to observed WinService
         :type observed: ref
+        :param service_gate: Class inherited from ServiceGate
+        :type service_gate: class name
+        :param port: Port number on which you wish to access your service
+        :type port: int
         """
 
         threading.Thread.__init__(self)

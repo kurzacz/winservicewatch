@@ -6,7 +6,19 @@ import winservicewatch.Service
 
 
 class MyServiceGate(winservicewatch.Service.ServiceGate):
-    pass
+
+    def exposed_get_state(self):
+        """
+        This is custom function to retrieve some variable from MyObservableService
+
+        Provide this function to let observer get service state immediately after connection establish.
+        Please note the exposed_ prefix, required by RPYC: https://rpyc.readthedocs.io/en/latest/docs/services.html
+
+        :returns: value of a field you want to expose
+        :rtype: int
+        """
+
+        return self._observedService.get_state()
 
 
 class MyObservableService(winservicewatch.Service.WinService):
@@ -34,12 +46,12 @@ class MyObservableService(winservicewatch.Service.WinService):
     def my_job(self):
         logging.getLogger().info("Starting main job")
 
-        logging.getLogger().debug("Setting busy state")
+        logging.getLogger().debug("Suppose I'm locking resources. Set busy state")
         self._state = MyObservableService.STATE_BUSY
         self._notify_observers()
         logging.getLogger().info("Starting session...")
         time.sleep(15)
-        logging.getLogger().debug("Finished. Switching back to idle state")
+        logging.getLogger().debug("Finished. Unlock resources then switch back to idle state")
         self._state = MyObservableService.STATE_IDLE
         self._notify_observers()
 

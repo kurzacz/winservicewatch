@@ -7,6 +7,16 @@ import winservicewatch.Service
 
 class MyObservableService(winservicewatch.Service.WinService):
 
+    STATE_BUSY = 1
+    """Class const of state when your service performs any demanding task"""
+
+    STATE_IDLE = 0
+    """Class const of state when your service is waiting until schedule call main job again"""
+
+    def __init__(self, args):
+        super().__init__(args)
+        self._state = MyObservableService.STATE_IDLE
+
     def main(self):
         logging.getLogger().info("Starting main loop")
 
@@ -20,12 +30,12 @@ class MyObservableService(winservicewatch.Service.WinService):
         logging.getLogger().info("Starting main job")
 
         logging.getLogger().debug("Setting busy state")
-        self._state = winservicewatch.Service.WinService.STATE_BUSY
+        self._state = MyObservableService.STATE_BUSY
         self.notifyObservers()
         logging.getLogger().info("Starting session...")
         time.sleep(15)
         logging.getLogger().debug("Finished. Switching back to idle state")
-        self._state = winservicewatch.Service.WinService.STATE_IDLE
+        self._state = MyObservableService.STATE_IDLE
         self.notifyObservers()
 
 

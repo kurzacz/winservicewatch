@@ -183,16 +183,9 @@ class WinService(SMWinservice):
     _svc_description_ = "Example long service with exposed changing state"
     """Short description of your service name."""
 
-    STATE_BUSY = 1
-    """Class const of state when your service performs any demanding task"""
-
-    STATE_IDLE = 0
-    """Class const of state when your service is waiting until schedule call main job again"""
-
     def __init__(self, args):
         super().__init__(args)
         self._observers = {}  # dict()
-        self._state = WinService.STATE_IDLE
         self._is_running = False
         self._serviceGateThread = ServiceGateThread(self)
 

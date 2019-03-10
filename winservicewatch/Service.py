@@ -209,13 +209,8 @@ class WinService(SMWinservice):
         logging.getLogger().info("Main observed service is about to stop")
         self._is_running = False
 
-    def notifyObservers(self):
-        logging.getLogger().info("Notify observers about state change")
-        for name in self._observers:
-            self._observers[name].root.updateServiceState(self._state)
-
-    def get_state(self):
-        return self._state
+    def _notify_observers(self):
+        pass
 
     def register_observer(self, name, handler):
         self._observers[name] = handler

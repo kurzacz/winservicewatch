@@ -31,12 +31,20 @@ class MyObservableService(winservicewatch.Service.WinService):
 
         logging.getLogger().debug("Setting busy state")
         self._state = MyObservableService.STATE_BUSY
-        self.notifyObservers()
+        self._notify_observers()
         logging.getLogger().info("Starting session...")
         time.sleep(15)
         logging.getLogger().debug("Finished. Switching back to idle state")
         self._state = MyObservableService.STATE_IDLE
-        self.notifyObservers()
+        self._notify_observers()
+
+    def _notify_observers(self):
+        logging.getLogger().info("Notify observers about state change")
+        for name in self._observers:
+            self._observers[name].root.updateServiceState(self._state)
+
+    def get_state(self):
+        return self._state
 
 
 if __name__ == '__main__':

@@ -250,13 +250,8 @@ class WinService(SMWinservice):
 
         This method will be called when you ask your service to stop.
         """
-        logging.getLogger().info("Starting main loop")
 
-        timer = schedule.every(3).seconds
-        timer.do(self.my_job)
-        while self._is_running:
-            schedule.run_pending()
-            time.sleep(1)
+        pass
 
 
 # TODO: Move to demos

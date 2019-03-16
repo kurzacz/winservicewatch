@@ -37,7 +37,7 @@ class MyObservableService(winservicewatch.Service.WinService):
     def main(self):
         logging.getLogger().info("Starting main loop")
 
-        timer = schedule.every(3).seconds
+        timer = schedule.every(15).seconds
         timer.do(self.my_job)
         while self._is_running:
             schedule.run_pending()
@@ -50,7 +50,7 @@ class MyObservableService(winservicewatch.Service.WinService):
         self._state = MyObservableService.STATE_BUSY
         self._notify_observers()
         logging.getLogger().info("Starting job...")
-        time.sleep(15)
+        time.sleep(5)
         logging.getLogger().debug("Finished. Unlock resources then switch back to idle state")
         self._state = MyObservableService.STATE_IDLE
         self._notify_observers()

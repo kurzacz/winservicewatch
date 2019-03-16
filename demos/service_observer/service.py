@@ -1,5 +1,4 @@
 import logging
-# TODO: Create requirements and put schedule
 import schedule
 import time
 import winservicewatch.Service
